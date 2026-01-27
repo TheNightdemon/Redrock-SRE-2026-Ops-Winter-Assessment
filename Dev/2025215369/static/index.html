@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>运维监控系统-控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --panel-bg: rgba(10, 20, 38, 0.78);
+      --panel-border: rgba(135, 190, 255, 0.25);
+      --panel-glow: rgba(140, 210, 255, 0.18);
+      --accent: #9fe1ff;
+      --accent-strong: #77c7ff;
+      --accent-deep: #3aa2ff;
+      --danger: #ff6b6b;
+    }
+
+    body {
+      font-family: "Noto Sans SC", "ZCOOL XiaoWei", sans-serif;
+      background-image: url("/static/images/background.png");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(6, 14, 28, 0.7), rgba(7, 12, 20, 0.9));
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-shell {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1, h2 {
+      font-family: "ZCOOL XiaoWei", "Noto Sans SC", serif;
+      letter-spacing: 0.02em;
+    }
+
+    .section-title {
+      font-family: "霞文楷 Light", "ZCOOL XiaoWei", "Noto Sans SC", serif;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 18px 40px rgba(3, 10, 20, 0.45), inset 0 0 24px var(--panel-glow);
+      backdrop-filter: blur(6px);
+    }
+
+    .ui-input,
+    .ui-select {
+      background: rgba(6, 12, 24, 0.85);
+      border: 1px solid rgba(130, 185, 255, 0.3);
+      color: #e5f4ff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ui-input:focus,
+    .ui-select:focus {
+      outline: none;
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 0 2px rgba(120, 190, 255, 0.25);
+    }
+
+    .ui-button {
+      background: linear-gradient(135deg, #8fe0ff, #5bb8ff);
+      color: #092038;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 10px 24px rgba(20, 80, 140, 0.4);
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    .ui-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(20, 80, 140, 0.45);
+    }
+
+    .list-card {
+      border: 1px solid rgba(140, 200, 255, 0.25);
+      background: rgba(5, 12, 24, 0.7);
+      box-shadow: inset 0 0 18px rgba(120, 190, 255, 0.1);
+    }
+
+    .list-card.is-active {
+      border-color: var(--accent);
+      box-shadow: 0 0 22px rgba(120, 200, 255, 0.3);
+      background: rgba(12, 26, 46, 0.85);
+    }
+
+    .badge {
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge-up {
+      background: rgba(120, 220, 255, 0.2);
+      border: 1px solid rgba(120, 220, 255, 0.6);
+      color: #bfefff;
+    }
+
+    .badge-down {
+      background: rgba(255, 110, 120, 0.2);
+      border: 1px solid rgba(255, 110, 120, 0.6);
+      color: #ffd6da;
+    }
+
+    .badge-unknown {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #d1e7ff;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="page-shell max-w-6xl mx-auto px-4 py-10">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold">MonitorSystem</h1>
+        <p class="text-slate-400">运维监控系统</p>
+      </div>
+    </div>
+
+    <div class="mt-8 grid lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-4 space-y-6">
+        <div class="panel rounded-2xl p-6">
+          <h2 class="section-title text-xl font-semibold">监控列表</h2>
+          <div id="monitorList" class="mt-4 space-y-3"></div>
+        </div>
+
+        <div class="panel rounded-2xl p-6">
+          <h2 class="section-title text-xl font-semibold">新增监控</h2>
+          <form id="monitorForm" class="mt-4 space-y-3">
+            <input class="ui-input w-full px-3 py-2 rounded-lg" name="name" placeholder="名称" required />
+            <select class="ui-select w-full px-3 py-2 rounded-lg" name="type">
+              <option value="http">HTTP</option>
+              <option value="tcp">TCP</option>
+              <option value="ping">Ping</option>
+              <option value="dns">DNS</option>
+            </select>
+            <input class="ui-input w-full px-3 py-2 rounded-lg" name="target" placeholder="目标 (URL / host:port / 域名)" required />
+            <input class="ui-input w-full px-3 py-2 rounded-lg" name="interval_seconds" type="number" min="5" placeholder="间隔 (秒)" value="60" />
+            <input class="ui-input w-full px-3 py-2 rounded-lg" name="timeout_seconds" type="number" step="0.1" min="1" placeholder="超时 (秒)" value="5" />
+            <input class="ui-input w-full px-3 py-2 rounded-lg" name="latency_threshold_ms" type="number" placeholder="延迟阈值 (ms 可选)" />
+            <div id="formError" class="hidden text-sm text-rose-300"></div>
+            <button class="ui-button w-full font-semibold rounded-lg py-2" type="submit">创建</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="lg:col-span-8 space-y-6">
+        <div class="panel rounded-2xl p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="section-title text-xl font-semibold">监控状态</h2>
+            <span id="statusSummary" class="text-sm text-slate-400">加载中...</span>
+          </div>
+          <div id="statusGrid" class="mt-4 grid md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <div class="panel rounded-2xl p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="section-title text-xl font-semibold">监控详情</h2>
+            <span id="detailTitle" class="text-sm text-slate-300">请选择左侧监控项</span>
+          </div>
+          <div id="detailPanel" class="mt-4 text-sm text-slate-300">
+            <p>点击左侧监控项查看最近检测详情与历史结果。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const monitorList = document.getElementById('monitorList');
+const form = document.getElementById('monitorForm');
+const formError = document.getElementById('formError');
+const statusGrid = document.getElementById('statusGrid');
+const statusSummary = document.getElementById('statusSummary');
+const detailPanel = document.getElementById('detailPanel');
+const detailTitle = document.getElementById('detailTitle');
+let cachedMonitors = [];
+let cachedStatus = [];
+let activeMonitorId = null;
+let chartInstance = null;
+
+function badge(status){
+  const normalized = (status || 'unknown').toLowerCase();
+  if (normalized === 'up') return `<span class="badge badge-up">up</span>`;
+  if (normalized === 'down') return `<span class="badge badge-down">down</span>`;
+  return `<span class="badge badge-unknown">unknown</span>`;
+}
+
+async function fetchMonitors(){
+  const [monitors, status] = await Promise.all([
+    fetch('/api/monitors').then(r=>r.json()),
+    fetch('/api/status').then(r=>r.json())
+  ]);
+
+  cachedMonitors = monitors;
+  cachedStatus = status;
+
+  renderMonitorList();
+  renderStatusOverview();
+  if (activeMonitorId) {
+    await showMonitorDetail(activeMonitorId);
+  }
+}
+
+function renderMonitorList(){
+  const latestMap = new Map(cachedStatus.map(item => [item.monitor.id, item.latest]));
+  monitorList.innerHTML = cachedMonitors.map(m => {
+    const latest = latestMap.get(m.id);
+    const statusText = latest?.status || 'unknown';
+    const isActive = m.id === activeMonitorId;
+    return `
+      <button class="list-card w-full text-left p-4 rounded-xl ${isActive ? 'is-active' : ''}" onclick="selectMonitor(${m.id})">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-semibold">${m.name}</h3>
+            <p class="text-xs text-slate-400">${m.type.toUpperCase()} · ${m.target}</p>
+          </div>
+          ${badge(statusText)}
+        </div>
+      </button>
+    `;
+  }).join('');
+}
+
+function renderStatusOverview(){
+  const total = cachedStatus.length;
+  const upCount = cachedStatus.filter(item => item.latest?.status === 'up').length;
+  const downCount = cachedStatus.filter(item => item.latest?.status === 'down').length;
+  statusSummary.textContent = `总数 ${total} · 正常 ${upCount} · 异常 ${downCount}`;
+
+  statusGrid.innerHTML = cachedStatus.map(item => {
+    const m = item.monitor;
+    const latest = item.latest || {};
+    const statusText = latest.status || 'unknown';
+    const latency = latest.latency_ms ? `${latest.latency_ms} ms` : '-';
+    const checked = latest.checked_at ? new Date(latest.checked_at).toLocaleString() : '-';
+    return `
+      <div class="list-card p-4 rounded-xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-semibold">${m.name}</h3>
+            <p class="text-xs text-slate-400">${m.type.toUpperCase()} · ${m.target}</p>
+          </div>
+          ${badge(statusText)}
+        </div>
+        <div class="mt-3 text-xs text-slate-300">
+          <span>延迟：${latency}</span>
+          <span class="ml-4">最近检测：${checked}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function selectMonitor(id){
+  activeMonitorId = id;
+  renderMonitorList();
+  await showMonitorDetail(id);
+}
+
+async function showMonitorDetail(id){
+  const monitor = cachedMonitors.find(m => m.id === id);
+  if (!monitor) return;
+
+  detailTitle.textContent = `${monitor.name} · ${monitor.type.toUpperCase()}`;
+  const results = await fetch(`/api/monitors/${id}/results?limit=1000`).then(r=>r.json());
+  const latest = results[0] || {};
+  const cutoff = Date.now() - (3 * 24 * 60 * 60 * 1000);
+  const recentResults = results.filter(item => new Date(item.checked_at).getTime() >= cutoff);
+
+  const historyRows = recentResults.slice(0, 10).map(item => {
+    const statusText = item.status || 'unknown';
+    const latency = item.latency_ms ? `${item.latency_ms} ms` : '-';
+    const checked = item.checked_at ? new Date(item.checked_at).toLocaleString() : '-';
+    return `
+      <div class="flex items-center justify-between border-b border-slate-800 py-2">
+        <div>
+          <div class="text-xs text-slate-400">${checked}</div>
+          <div class="text-sm">延迟：${latency}</div>
+        </div>
+        ${badge(statusText)}
+      </div>
+    `;
+  }).join('');
+
+  detailPanel.innerHTML = `
+    <div class="grid md:grid-cols-3 gap-4 text-xs">
+      <div class="list-card p-3 rounded-lg">
+        <div class="text-slate-400">目标</div>
+        <div class="text-sm">${monitor.target}</div>
+      </div>
+      <div class="list-card p-3 rounded-lg">
+        <div class="text-slate-400">最近状态</div>
+        <div class="text-sm">${latest.status || 'unknown'}</div>
+      </div>
+      <div class="list-card p-3 rounded-lg">
+        <div class="text-slate-400">最近延迟</div>
+        <div class="text-sm">${latest.latency_ms ? `${latest.latency_ms} ms` : '-'}</div>
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-200">响应时间</h3>
+        <span class="text-xs text-slate-400">最近 3 天</span>
+      </div>
+      <div class="mt-3 h-56 list-card rounded-xl p-3">
+        <canvas id="latencyChart"></canvas>
+      </div>
+    </div>
+    <div class="mt-4">
+      <h3 class="text-sm font-semibold text-slate-200">最近检测</h3>
+      <div class="mt-2">${historyRows || '<div class="text-slate-400">暂无记录</div>'}</div>
+    </div>
+    <div class="mt-4">
+      <button class="text-xs text-rose-300 hover:text-rose-200" onclick="deleteMonitor(${monitor.id})">删除该监控</button>
+    </div>
+  `;
+
+  renderChart(recentResults);
+}
+
+function renderChart(results){
+  const ordered = [...results].reverse();
+  const labels = ordered.map(item => new Date(item.checked_at).toLocaleString());
+  const data = ordered.map(item => item.latency_ms ?? null);
+  const ctx = document.getElementById('latencyChart');
+  if (!ctx) return;
+
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '响应时间 (ms)',
+          data,
+          borderColor: '#7dd3fc',
+          backgroundColor: 'rgba(125, 211, 252, 0.12)',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          tension: 0.35,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8', maxTicksLimit: 6 },
+          grid: { color: 'rgba(148, 163, 184, 0.2)' }
+        },
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(148, 163, 184, 0.15)' }
+        }
+      }
+    }
+  });
+}
+
+async function deleteMonitor(id){
+  await fetch(`/api/monitors/${id}`, { method: 'DELETE' });
+  if (activeMonitorId === id) {
+    activeMonitorId = null;
+    detailTitle.textContent = '请选择左侧监控项';
+    detailPanel.innerHTML = '<p>点击左侧监控项查看最近检测详情与历史结果。</p>';
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+  }
+  fetchMonitors();
+}
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  formError.classList.add('hidden');
+  formError.textContent = '';
+  const data = Object.fromEntries(new FormData(form).entries());
+  data.interval_seconds = Number(data.interval_seconds || 60);
+  data.timeout_seconds = Number(data.timeout_seconds || 5);
+  if (data.latency_threshold_ms === '' || data.latency_threshold_ms == null) {
+    delete data.latency_threshold_ms;
+  } else {
+    data.latency_threshold_ms = Number(data.latency_threshold_ms);
+  }
+  const resp = await fetch('/api/monitors', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  if (!resp.ok) {
+    let message = `创建失败（${resp.status}）`;
+    try {
+      const detail = await resp.json();
+      if (detail?.detail) {
+        message = Array.isArray(detail.detail)
+          ? detail.detail.map(item => item.msg || JSON.stringify(item)).join('; ')
+          : detail.detail;
+      }
+    } catch (_) {}
+    formError.textContent = message;
+    formError.classList.remove('hidden');
+    return;
+  }
+  form.reset();
+  fetchMonitors();
+});
+
+fetchMonitors();
+setInterval(fetchMonitors, 5000);
+</script>
+</body>
+</html>
