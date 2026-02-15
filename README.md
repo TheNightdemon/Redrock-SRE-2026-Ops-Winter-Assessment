@@ -17,21 +17,16 @@
 1. **Fork 本仓库**  
    在 GitHub 上 Fork 本仓库到你的个人账号下。
 
-   [lulaide/Redrock-SRE-2026-Ops-Winter-Assessment: 2026 年红岩网校工作站运维安全部运维方向寒假考核](https://github.com/lulaide/Redrock-SRE-2026-Ops-Winter-Assessment)
-
 2. **创建项目文件夹**  
    在对应题目的文件夹下创建以你的**学号命名**的项目文件夹：
-
    - 运维任务：`Ops/你的学号/`
    - 开发任务：`Dev/你的学号/`
 
 3. **完成开发**  
-
    - **推荐方式**：直接在 Fork 仓库的项目文件夹中完成开发
    - **替代方式**：如果感觉不便，可以另外新建仓库进行开发，但请在 Fork 仓库的项目文件夹中创建 `README.md` 文件，给出你新建仓库的链接
 
 4. **发起 Pull Request**  
-
    - 在运维部分和开发部分都完成后，向上游仓库（即本仓库）发起 Pull Request
    - 因为本次考核并非实际的协作项目，因此可以在最后将所有提交合并为一个 PR
 
